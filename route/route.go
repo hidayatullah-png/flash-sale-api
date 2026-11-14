@@ -1,15 +1,27 @@
 package route
 
 import (
-	"flash-sale-api/app/service"
-
 	"github.com/gofiber/fiber/v2"
+
+	"flash-sale-api/app/service"
+	"flash-sale-api/helper"
+	"flash-sale-api/middleware"
 )
 
-// SetupRoutes mendaftarkan semua endpoint API
-func SetupRoutes(app *fiber.App, orderService *service.OrderService) {
+func SetupRoutes(
+	app *fiber.App,
+	orderService *service.OrderService,
+	authService *service.AuthService,
+	jwtManager *helper.JWTManager,
+) {
 	api := app.Group("/api/v1")
 
-	// Endpoint Transaksi Flash Sale
-	api.Post("/checkout", orderService.Checkout)
+	// Endpoint Auth 
+	auth := api.Group("/auth")
+	auth.Post("/register", authService.Register)
+	auth.Post("/login", middleware.LoginRateLimiter(), authService.Login)
+	auth.Get("/me", middleware.RequireAuth(jwtManager), authService.Me)
+
+	// Endpoint Transaksi Flash Sale 
+	api.Post("/checkout", middleware.RequireAuth(jwtManager), orderService.Checkout)
 }
