@@ -80,6 +80,14 @@ func (s *AuthService) Login(c *fiber.Ctx) error {
 		return helper.Validation(errs)
 	}
 
+	if errs := helper.ValidateStruct(req); errs != nil {
+		return helper.Validation(errs)
+	}
+
+	if msg := checkPasswordStrength(req.Password); msg != "" {
+		return helper.BadRequest(msg)
+	}
+
 	// Mencari user berdasarkan email sesuai LoginRequest
 	user, err := s.users.FindByEmail(ctx, strings.TrimSpace(req.Email))
 	if err != nil {
