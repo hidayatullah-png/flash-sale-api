@@ -9,8 +9,11 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/joho/godotenv"
 
-	// Sesuaikan nama modul ini dengan nama di file go.mod milikmu
-	"flash-sale-api/config" 
+	// Import konfigurasi dan struktur Clean Architecture-mu
+	"flash-sale-api/app/repository"
+	"flash-sale-api/app/service"
+	"flash-sale-api/config"
+	"flash-sale-api/route"
 )
 
 func main() {
@@ -20,9 +23,9 @@ func main() {
 		log.Println("Peringatan: File .env tidak ditemukan, menggunakan environment system")
 	}
 
-	// 2. Inisiasi Koneksi Database (BARU DITAMBAHKAN)
+	// 2. Inisiasi Koneksi Database
 	dbPool := config.ConnectPostgres()
-	defer dbPool.Close() // Pastikan koneksi ditutup saat server mati
+	defer dbPool.Close()
 
 	// 3. Inisiasi Fiber
 	app := fiber.New(fiber.Config{
@@ -40,9 +43,20 @@ func main() {
 		})
 	})
 
-	// TODO: Nanti Route dan Dependency Injection di-setup di sini
-	// Dan kita akan melempar dbPool ke dalam service
-	// route.SetupRoutes(app, dbPool)
+	// ==========================================
+	// BAGIAN DEPENDENCY INJECTION (PENGGANTI TODO)
+	// ==========================================
+
+	// A. Suntikkan database ke dalam Repository
+	orderRepo := repository.NewOrderRepository(dbPool)
+
+	// B. Suntikkan Repository ke dalam Service
+	orderService := service.NewOrderService(orderRepo)
+
+	// C. Daftarkan Service ke dalam Router Fiber
+	route.SetupRoutes(app, orderService)
+
+	// ==========================================
 
 	// 4. Jalankan Server
 	port := os.Getenv("PORT")
