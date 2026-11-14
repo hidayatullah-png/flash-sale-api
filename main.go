@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
@@ -13,21 +14,22 @@ import (
 	"flash-sale-api/app/repository"
 	"flash-sale-api/app/service"
 	"flash-sale-api/config"
+	"flash-sale-api/helper"
 	"flash-sale-api/route"
 )
 
 func main() {
-	// 1. Muat file .env
+	//Muat file .env
 	err := godotenv.Load()
 	if err != nil {
 		log.Println("Peringatan: File .env tidak ditemukan, menggunakan environment system")
 	}
 
-	// 2. Inisiasi Koneksi Database
+	//Inisiasi Koneksi Database
 	dbPool := config.ConnectPostgres()
 	defer dbPool.Close()
 
-	// 3. Inisiasi Fiber
+	//Inisiasi Fiber
 	app := fiber.New(fiber.Config{
 		AppName: "Flash Sale API v1.0",
 	})
@@ -43,22 +45,25 @@ func main() {
 		})
 	})
 
-	// ==========================================
-	// BAGIAN DEPENDENCY INJECTION (PENGGANTI TODO)
-	// ==========================================
+	// Setup JWT Manager (mengambil secret dari .env atau fallback default)
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		jwtSecret = "rahasia-flash-sale-super-aman-123"
+	}
+	jwtManager := helper.NewJWTManager(jwtSecret, "flash-sale-api", 24*time.Hour)
 
-	// A. Suntikkan database ke dalam Repository
+	//memasukkan database ke dalam Repository
 	orderRepo := repository.NewOrderRepository(dbPool)
+	userRepo := repository.NewUserRepository(dbPool)
 
-	// B. Suntikkan Repository ke dalam Service
+	// memasukkan Repository ke dalam Service
 	orderService := service.NewOrderService(orderRepo)
+	authService := service.NewAuthService(userRepo, jwtManager)
 
-	// C. Daftarkan Service ke dalam Router Fiber
-	route.SetupRoutes(app, orderService)
+	//Daftarkan Service ke dalam Router Fiber
+	route.SetupRoutes(app, orderService, authService, jwtManager)
 
-	// ==========================================
-
-	// 4. Jalankan Server
+	//Jalankan Server
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "3000"
