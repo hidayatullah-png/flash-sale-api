@@ -1,0 +1,19 @@
+# Konfigurasi Environment 
+.env
+.env.*
+
+# Binari Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test output
+*.test
+*.out
+coverage.out
+
+# Folder temporary/cache
+/tmp
+/vendor/
