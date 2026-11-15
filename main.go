@@ -7,6 +7,7 @@ import (
 	"time"
 
 	_ "flash-sale-api/docs"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/joho/godotenv"
@@ -24,6 +25,15 @@ func main() {
 	if err != nil {
 		log.Println("Peringatan: File .env tidak ditemukan, menggunakan environment system")
 	}
+
+	// Inisialisasi Redis
+	redisClient, err := config.NewRedisClient(context.Background())
+	if err != nil {
+		log.Fatalf("Gagal menginisialisasi Redis: %v", err)
+	}
+	defer redisClient.Close()
+
+	log.Println("Berhasil terhubung ke Redis!")
 
 	// 2. Inisiasi Koneksi Database (GABUNGAN SUKMA & CIA)
 	dbPool := config.ConnectPostgres()
