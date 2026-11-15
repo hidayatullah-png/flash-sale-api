@@ -1,14 +1,15 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
 	"time"
 
+	_ "flash-sale-api/docs"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
-	"github.com/joho/godotenv" 
-	_ "flash-sale-api/docs" 
+	"github.com/joho/godotenv"
 
 	"flash-sale-api/app/repository"
 	"flash-sale-api/app/service"
@@ -28,7 +29,9 @@ func main() {
 	dbPool := config.ConnectPostgres()
 	defer dbPool.Close()
 
-	mongoDB := config.ConnectMongoDB() // Punya Cia
+	// Sesuaikan dengan fungsi buatan Cia yang mengembalikan 2 nilai
+	mongoClient, mongoDB := config.ConnectMongo()
+	defer mongoClient.Disconnect(context.Background())
 
 	// 3. Inisiasi Fiber
 	app := fiber.New(fiber.Config{
@@ -44,17 +47,18 @@ func main() {
 	jwtManager := helper.NewJWTManager(jwtSecret, "flash-sale-api", 24*time.Hour)
 
 	// 5. Masukkan Database ke Repository (GABUNGAN BERTIGA)
-	orderRepo := repository.NewOrderRepository(dbPool)       // Sukma
-	userRepo := repository.NewUserRepository(dbPool)         // Faza
-	productRepo := repository.NewProductRepository(dbPool)   // Cia
-	reviewRepo := repository.NewReviewRepository(mongoDB)    // Cia
+	orderRepo := repository.NewOrderRepository(dbPool)     // Sukma
+	userRepo := repository.NewUserRepository(dbPool)       // Faza
+	productRepo := repository.NewProductRepository(dbPool) // Cia
+	reviewRepo := repository.NewReviewRepository(mongoDB)  // Cia
 
 	// 6. Masukkan Repository ke Service (GABUNGAN BERTIGA)
 	orderService := service.NewOrderService(orderRepo)
 	authService := service.NewAuthService(userRepo, jwtManager)
 	productService := service.NewProductService(productRepo)
-	reviewService := service.NewReviewService(reviewRepo)
 
+	// Tambahkan productRepo di sini
+	reviewService := service.NewReviewService(reviewRepo, productRepo)
 	// 7. Daftarkan Service ke Router (DISESUAIKAN)
 	// Pastikan parameter fungsi SetupRoutes di route.go juga diubah untuk menerima semuanya
 	route.SetupRoutes(app, orderService, authService, productService, reviewService, jwtManager)
