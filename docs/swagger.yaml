@@ -1,0 +1,403 @@
+basePath: /api
+definitions:
+  model.ErrorResponse:
+    properties:
+      error:
+        example: produk tidak ditemukan
+        type: string
+    type: object
+  model.MessageResponse:
+    properties:
+      message:
+        example: berhasil dihapus
+        type: string
+    type: object
+  model.Product:
+    properties:
+      created_at:
+        type: string
+      description:
+        example: Edisi terbatas, hanya 100 pasang
+        type: string
+      id:
+        example: 1
+        type: integer
+      name:
+        example: Sepatu Lari Limited
+        type: string
+      price:
+        example: 499000
+        type: number
+      stock:
+        example: 100
+        type: integer
+      version:
+        description: Penting untuk mencegah race condition
+        example: 1
+        type: integer
+    type: object
+  model.ProductRequest:
+    properties:
+      description:
+        example: Edisi terbatas, hanya 100 pasang
+        type: string
+      name:
+        example: Sepatu Lari Limited
+        type: string
+      price:
+        example: 499000
+        type: number
+      stock:
+        example: 100
+        type: integer
+    type: object
+  model.RatingSummary:
+    properties:
+      average_rating:
+        example: 4.5
+        type: number
+      product_id:
+        example: 1
+        type: integer
+      total_reviews:
+        example: 12
+        type: integer
+    type: object
+  model.Review:
+    properties:
+      comment:
+        example: Barang bagus, pengiriman cepat!
+        type: string
+      created_at:
+        type: string
+      id:
+        example: 665f1c2e8f1b2a0012ab34cd
+        type: string
+      product_id:
+        example: 1
+        type: integer
+      rating:
+        example: 5
+        type: integer
+      user_id:
+        example: 7
+        type: integer
+    type: object
+  model.ReviewRequest:
+    properties:
+      comment:
+        example: Barang bagus, pengiriman cepat!
+        type: string
+      rating:
+        description: 1 - 5
+        example: 5
+        type: integer
+      user_id:
+        example: 7
+        type: integer
+    type: object
+host: localhost:3000
+info:
+  contact: {}
+  description: API sistem flash sale (PostgreSQL + MongoDB).
+  title: Flash Sale API
+  version: "1.0"
+paths:
+  /products:
+    get:
+      description: Mengambil daftar produk dengan paginasi.
+      parameters:
+      - description: Halaman (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Jumlah per halaman (default 10, maks 100)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Product'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      summary: Daftar produk flash sale
+      tags:
+      - Products
+    post:
+      consumes:
+      - application/json
+      description: Membuat produk baru di PostgreSQL. Field version otomatis bernilai
+        1.
+      parameters:
+      - description: Data produk
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.ProductRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.Product'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      summary: Tambah produk flash sale
+      tags:
+      - Products
+  /products/{id}:
+    delete:
+      description: Menghapus produk. Ditolak (409) jika produk masih dipakai oleh
+        order.
+      parameters:
+      - description: ID produk
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      summary: Hapus produk
+      tags:
+      - Products
+    get:
+      description: Mengambil satu produk berdasarkan ID.
+      parameters:
+      - description: ID produk
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Product'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      summary: Detail produk
+      tags:
+      - Products
+    put:
+      consumes:
+      - application/json
+      description: Mengubah data produk. Field version otomatis naik +1 setiap update.
+      parameters:
+      - description: ID produk
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Data produk baru
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.ProductRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Product'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      summary: Edit produk
+      tags:
+      - Products
+  /products/{id}/reviews:
+    get:
+      description: Mengambil ulasan satu produk dari MongoDB, terbaru lebih dulu.
+      parameters:
+      - description: ID produk
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Halaman (default 1)
+        in: query
+        name: page
+        type: integer
+      - description: Jumlah per halaman (default 10, maks 100)
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.Review'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      summary: Daftar ulasan produk
+      tags:
+      - Reviews
+    post:
+      consumes:
+      - application/json
+      description: Menyimpan komentar & rating (1-5) ke MongoDB. Produk harus ada
+        di PostgreSQL.
+      parameters:
+      - description: ID produk
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Data ulasan
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.ReviewRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.Review'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      summary: Tambah ulasan produk
+      tags:
+      - Reviews
+  /products/{id}/reviews/summary:
+    get:
+      description: Rata-rata rating dan jumlah ulasan, dihitung dengan aggregation
+        pipeline MongoDB.
+      parameters:
+      - description: ID produk
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.RatingSummary'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      summary: Ringkasan rating produk
+      tags:
+      - Reviews
+  /reviews/{reviewId}:
+    delete:
+      description: Menghapus satu ulasan dari MongoDB berdasarkan ObjectID.
+      parameters:
+      - description: ObjectID ulasan
+        in: path
+        name: reviewId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      summary: Hapus ulasan
+      tags:
+      - Reviews
+swagger: "2.0"

@@ -7,10 +7,9 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/logger"
-	"github.com/gofiber/fiber/v2/middleware/recover"
-	"github.com/joho/godotenv"
+	"github.com/joho/godotenv" 
+	_ "flash-sale-api/docs" 
 
-	// Import konfigurasi dan struktur Clean Architecture-mu
 	"flash-sale-api/app/repository"
 	"flash-sale-api/app/service"
 	"flash-sale-api/config"
@@ -19,51 +18,48 @@ import (
 )
 
 func main() {
-	//Muat file .env
+	// 1. Muat file .env
 	err := godotenv.Load()
 	if err != nil {
 		log.Println("Peringatan: File .env tidak ditemukan, menggunakan environment system")
 	}
 
-	//Inisiasi Koneksi Database
+	// 2. Inisiasi Koneksi Database (GABUNGAN SUKMA & CIA)
 	dbPool := config.ConnectPostgres()
 	defer dbPool.Close()
 
-	//Inisiasi Fiber
+	mongoDB := config.ConnectMongoDB() // Punya Cia
+
+	// 3. Inisiasi Fiber
 	app := fiber.New(fiber.Config{
 		AppName: "Flash Sale API v1.0",
 	})
-
-	// Middleware bawaan Fiber
 	app.Use(logger.New())
-	app.Use(recover.New())
 
-	// Route Test Sederhana
-	app.Get("/ping", func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{
-			"message": "Boilerplate Flash Sale API Berhasil Berjalan!",
-		})
-	})
-
-	// Setup JWT Manager (mengambil secret dari .env atau fallback default)
+	// 4. Setup JWT Manager (PUNYA FAZA)
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
 		jwtSecret = "rahasia-flash-sale-super-aman-123"
 	}
 	jwtManager := helper.NewJWTManager(jwtSecret, "flash-sale-api", 24*time.Hour)
 
-	//memasukkan database ke dalam Repository
-	orderRepo := repository.NewOrderRepository(dbPool)
-	userRepo := repository.NewUserRepository(dbPool)
+	// 5. Masukkan Database ke Repository (GABUNGAN BERTIGA)
+	orderRepo := repository.NewOrderRepository(dbPool)       // Sukma
+	userRepo := repository.NewUserRepository(dbPool)         // Faza
+	productRepo := repository.NewProductRepository(dbPool)   // Cia
+	reviewRepo := repository.NewReviewRepository(mongoDB)    // Cia
 
-	// memasukkan Repository ke dalam Service
+	// 6. Masukkan Repository ke Service (GABUNGAN BERTIGA)
 	orderService := service.NewOrderService(orderRepo)
 	authService := service.NewAuthService(userRepo, jwtManager)
+	productService := service.NewProductService(productRepo)
+	reviewService := service.NewReviewService(reviewRepo)
 
-	//Daftarkan Service ke dalam Router Fiber
-	route.SetupRoutes(app, orderService, authService, jwtManager)
+	// 7. Daftarkan Service ke Router (DISESUAIKAN)
+	// Pastikan parameter fungsi SetupRoutes di route.go juga diubah untuk menerima semuanya
+	route.SetupRoutes(app, orderService, authService, productService, reviewService, jwtManager)
 
-	//Jalankan Server
+	// 8. Jalankan Server
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "3000"
