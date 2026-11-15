@@ -28,8 +28,9 @@ func RegisterHandlers(server *asynq.Server) *asynq.ServeMux {
 	mux := asynq.NewServeMux()
 
 	mux.HandleFunc(TypeOrderProcess, HandleOrderProcessTask)
+	mux.HandleFunc(TypeOrderCancel, HandleOrderCancelTask)
 
-	log.Println("Asynq handlers registered")
+	log.Println("Asynq handlers registered (order:process, order:cancel)")
 
 	return mux
 }

@@ -1,18 +1,27 @@
 package service
 
 import (
+	"log"
+	"time"
+
 	"flash-sale-api/app/repository"
+	"flash-sale-api/app/worker"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/hibiken/asynq"
 )
 
 type OrderService struct {
-	repo *repository.OrderRepository
+	repo        *repository.OrderRepository
+	asynqClient *asynq.Client
 }
 
-// Inisiasi Service dengan menyuntikkan Repository
-func NewOrderService(repo *repository.OrderRepository) *OrderService {
-	return &OrderService{repo: repo}
+// Inisiasi Service dengan menyuntikkan Repository dan Asynq Client
+func NewOrderService(repo *repository.OrderRepository, asynqClient *asynq.Client) *OrderService {
+	return &OrderService{
+		repo:        repo,
+		asynqClient: asynqClient,
+	}
 }
 
 // Struct untuk menangkap data JSON dari user
@@ -46,8 +55,7 @@ func (s *OrderService) Checkout(c *fiber.Ctx) error {
 	}
 
 	// 2. Lempar ke Repository untuk eksekusi Row-Level Locking
-	// c.Context() adalah context bawaan Fiber untuk membatalkan proses jika user tiba-tiba disconnect
-	err := s.repo.CheckoutFlashSale(c.Context(), req.UserID, req.ProductID, req.Quantity)
+	orderID, err := s.repo.CheckoutFlashSale(c.Context(), req.UserID, req.ProductID, req.Quantity)
 	if err != nil {
 		// Jika error karena stok habis atau barang tidak ada
 		return c.Status(fiber.StatusConflict).JSON(fiber.Map{
@@ -56,9 +64,25 @@ func (s *OrderService) Checkout(c *fiber.Ctx) error {
 		})
 	}
 
-	// 3. Kembalikan Response Sukses
+	// 3. Enqueue Background Task: Auto-Cancel Order jika belum dibayar dalam 15 menit
+	if s.asynqClient != nil {
+		cancelTask, err := worker.NewOrderCancelTask(orderID, 15*time.Minute)
+		if err != nil {
+			log.Printf("[OrderService] Gagal membuat task cancel order %d: %v", orderID, err)
+		} else {
+			info, err := s.asynqClient.Enqueue(cancelTask)
+			if err != nil {
+				log.Printf("[OrderService] Gagal enqueue cancel task untuk order %d: %v", orderID, err)
+			} else {
+				log.Printf("[OrderService] Auto-cancel task dijadwalkan (Task ID: %s, Order ID: %d, Delay: 15m)", info.ID, orderID)
+			}
+		}
+	}
+
+	// 4. Kembalikan Response Sukses beserta Order ID
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"status":  "success",
-		"message": "Berhasil mengamankan barang Flash Sale!",
+		"status":   "success",
+		"message":  "Berhasil mengamankan barang Flash Sale!",
+		"order_id": orderID,
 	})
 }
