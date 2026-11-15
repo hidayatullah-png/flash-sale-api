@@ -19,10 +19,10 @@ func NewOrderService(repo *repository.OrderRepository) *OrderService {
 type CheckoutRequest struct {
 	ProductID int `json:"product_id"`
 	Quantity  int `json:"quantity"`
-	// Catatan: UserID sementara kita minta dari body untuk tes. 
+	// Catatan: UserID sementara kita minta dari body untuk tes.
 	// Nanti setelah Faza selesai dengan fitur Auth, UserID ini akan
 	// diambil secara gaib dari JWT Token (c.Locals).
-	UserID    int `json:"user_id"` 
+	UserID int `json:"user_id"`
 }
 
 // Checkout adalah metode yang langsung dipanggil oleh Router Fiber

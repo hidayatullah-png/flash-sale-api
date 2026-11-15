@@ -14,6 +14,7 @@ import (
 
 	"flash-sale-api/app/repository"
 	"flash-sale-api/app/service"
+	"flash-sale-api/app/worker"
 	"flash-sale-api/config"
 	"flash-sale-api/helper"
 	"flash-sale-api/route"
@@ -34,6 +35,12 @@ func main() {
 	defer redisClient.Close()
 
 	log.Println("Berhasil terhubung ke Redis!")
+
+	// Inisialisasi Asynq Producer
+	asynqClient := worker.NewClient()
+	defer asynqClient.Close()
+
+	log.Println("Asynq Producer berhasil diinisialisasi!")
 
 	// 2. Inisiasi Koneksi Database (GABUNGAN SUKMA & CIA)
 	dbPool := config.ConnectPostgres()
@@ -63,7 +70,7 @@ func main() {
 	reviewRepo := repository.NewReviewRepository(mongoDB)  // Cia
 
 	// 6. Masukkan Repository ke Service (GABUNGAN BERTIGA)
-	orderService := service.NewOrderService(orderRepo)
+	orderService := service.NewOrderService(orderRepo, asynqClient)
 	authService := service.NewAuthService(userRepo, jwtManager)
 	productService := service.NewProductService(productRepo)
 
