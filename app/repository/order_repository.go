@@ -9,6 +9,10 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+type OrderRepository struct {
+	db *pgxpool.Pool
+}
+
 func (r *OrderRepository) CheckoutFlashSale(ctx context.Context, userID, slotID, quantity int) error {
 	// 1. Mulai Transaksi Database (ACID)
 	tx, err := r.db.Begin(ctx)
@@ -29,7 +33,7 @@ func (r *OrderRepository) CheckoutFlashSale(ctx context.Context, userID, slotID,
 		WHERE id = $1
 		FOR UPDATE
 	`
-	err = tx.QueryRow(ctx, queryLock, slotID).Scan(&productID, &flashPrice, ¤tQuota, &startTime, &endTime)
+	err = tx.QueryRow(ctx, queryLock, slotID).Scan(&productID, &flashPrice, &currentQuota, &startTime, &endTime)
 	if err != nil {
 		return errors.New("slot flash sale tidak ditemukan")
 	}
