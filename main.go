@@ -20,6 +20,15 @@ import (
 	"flash-sale-api/route"
 )
 
+// @title                       Flash Sale API
+// @version                     1.0
+// @description                 API sistem flash sale (PostgreSQL + MongoDB).
+// @host                        localhost:3000
+// @BasePath                    /api/v1
+// @securityDefinitions.apikey  BearerAuth
+// @in                          header
+// @name                        Authorization
+// @description                 Isi dengan: Bearer <token JWT dari login>
 func main() {
 	// 1. Muat file .env
 	err := godotenv.Load()
@@ -64,10 +73,11 @@ func main() {
 	jwtManager := helper.NewJWTManager(jwtSecret, "flash-sale-api", 24*time.Hour)
 
 	// 5. Masukkan Database ke Repository (GABUNGAN BERTIGA)
-	orderRepo := repository.NewOrderRepository(dbPool)     // Sukma
-	userRepo := repository.NewUserRepository(dbPool)       // Faza
-	productRepo := repository.NewProductRepository(dbPool) // Cia
-	reviewRepo := repository.NewReviewRepository(mongoDB)  // Cia
+	orderRepo := repository.NewOrderRepository(dbPool)        // Sukma
+	userRepo := repository.NewUserRepository(dbPool)          // Faza
+	productRepo := repository.NewProductRepository(dbPool)    // Cia
+	reviewRepo := repository.NewReviewRepository(mongoDB)     // Cia
+	slotRepo := repository.NewFlashSaleSlotRepository(dbPool) // Cia
 
 	// 6. Masukkan Repository ke Service (GABUNGAN BERTIGA)
 	orderService := service.NewOrderService(orderRepo, asynqClient)
@@ -76,9 +86,10 @@ func main() {
 
 	// Tambahkan productRepo di sini
 	reviewService := service.NewReviewService(reviewRepo, productRepo)
+	slotService := service.NewFlashSaleSlotService(slotRepo) // Cia
 	// 7. Daftarkan Service ke Router (DISESUAIKAN)
 	// Pastikan parameter fungsi SetupRoutes di route.go juga diubah untuk menerima semuanya
-	route.SetupRoutes(app, orderService, authService, productService, reviewService, jwtManager)
+	route.SetupRoutes(app, orderService, authService, productService, reviewService, slotService, jwtManager)
 
 	// 8. Jalankan Server
 	port := os.Getenv("PORT")

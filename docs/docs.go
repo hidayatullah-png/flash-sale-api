@@ -15,6 +15,263 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/flash-sales": {
+            "get": {
+                "description": "Mengambil daftar slot flash sale beserta status (upcoming, active, ended, sold_out). Gunakan active=true untuk hanya slot yang sedang berlangsung dan masih punya kuota.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Flash Sale"
+                ],
+                "summary": "Daftar slot flash sale",
+                "parameters": [
+                    {
+                        "type": "boolean",
+                        "description": "true = hanya slot yang sedang aktif",
+                        "name": "active",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/flash-sale-api_app_model.FlashSaleSlot"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/model.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Membuat jadwal flash sale untuk satu produk (harga flash, kuota, waktu mulai dan selesai). Produk harus ada di PostgreSQL. Format waktu RFC3339. Perlu token JWT.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Flash Sale"
+                ],
+                "summary": "Buat slot flash sale",
+                "parameters": [
+                    {
+                        "description": "Data slot flash sale",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/flash-sale-api_app_model.CreateFlashSaleSlotRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/flash-sale-api_app_model.FlashSaleSlot"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/model.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/model.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/model.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/flash-sales/{id}": {
+            "get": {
+                "description": "Mengambil satu slot flash sale beserta nama dan harga normal produknya.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Flash Sale"
+                ],
+                "summary": "Detail slot flash sale",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID slot",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/flash-sale-api_app_model.FlashSaleSlot"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/model.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/model.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/model.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Mengubah harga flash, kuota, dan jadwal slot. Produk pada slot tidak bisa diganti.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Flash Sale"
+                ],
+                "summary": "Edit slot flash sale",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID slot",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Data slot baru",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/flash-sale-api_app_model.UpdateFlashSaleSlotRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/flash-sale-api_app_model.FlashSaleSlot"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/model.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/model.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/model.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Menghapus slot. Ditolak (409) jika slot sudah memiliki pesanan.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Flash Sale"
+                ],
+                "summary": "Hapus slot flash sale",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID slot",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.MessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/model.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/model.ErrorResponse"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/model.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/model.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/products": {
             "get": {
                 "description": "Mengambil daftar produk dengan paginasi.",
@@ -460,6 +717,102 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "flash-sale-api_app_model.CreateFlashSaleSlotRequest": {
+            "type": "object",
+            "properties": {
+                "end_time": {
+                    "type": "string",
+                    "example": "2026-11-25T21:00:00+07:00"
+                },
+                "flash_price": {
+                    "type": "number",
+                    "example": 299000
+                },
+                "product_id": {
+                    "type": "integer",
+                    "example": 4
+                },
+                "quota": {
+                    "type": "integer",
+                    "example": 50
+                },
+                "start_time": {
+                    "type": "string",
+                    "example": "2026-11-25T19:00:00+07:00"
+                }
+            }
+        },
+        "flash-sale-api_app_model.FlashSaleSlot": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "end_time": {
+                    "type": "string",
+                    "example": "2026-11-25T21:00:00+07:00"
+                },
+                "flash_price": {
+                    "type": "number",
+                    "example": 299000
+                },
+                "id": {
+                    "type": "integer",
+                    "example": 1
+                },
+                "normal_price": {
+                    "type": "number",
+                    "example": 599000
+                },
+                "product_id": {
+                    "type": "integer",
+                    "example": 4
+                },
+                "product_name": {
+                    "type": "string",
+                    "example": "Sepatu Lari Limited"
+                },
+                "quota": {
+                    "type": "integer",
+                    "example": 50
+                },
+                "start_time": {
+                    "type": "string",
+                    "example": "2026-11-25T19:00:00+07:00"
+                },
+                "status": {
+                    "type": "string",
+                    "enum": [
+                        "upcoming",
+                        "active",
+                        "ended",
+                        "sold_out"
+                    ],
+                    "example": "upcoming"
+                }
+            }
+        },
+        "flash-sale-api_app_model.UpdateFlashSaleSlotRequest": {
+            "type": "object",
+            "properties": {
+                "end_time": {
+                    "type": "string",
+                    "example": "2026-11-25T21:00:00+07:00"
+                },
+                "flash_price": {
+                    "type": "number",
+                    "example": 299000
+                },
+                "quota": {
+                    "type": "integer",
+                    "example": 50
+                },
+                "start_time": {
+                    "type": "string",
+                    "example": "2026-11-25T19:00:00+07:00"
+                }
+            }
+        },
         "model.ErrorResponse": {
             "type": "object",
             "properties": {
@@ -595,6 +948,14 @@ const docTemplate = `{
                 }
             }
         }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "description": "Isi dengan: Bearer \u003ctoken JWT dari login\u003e",
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        }
     }
 }`
 
@@ -602,7 +963,7 @@ const docTemplate = `{
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
 	Host:             "localhost:3000",
-	BasePath:         "/api",
+	BasePath:         "/api/v1",
 	Schemes:          []string{},
 	Title:            "Flash Sale API",
 	Description:      "API sistem flash sale (PostgreSQL + MongoDB).",
