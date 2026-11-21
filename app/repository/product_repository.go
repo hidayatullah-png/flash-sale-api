@@ -13,7 +13,7 @@ import (
 
 var (
 	ErrProductNotFound = errors.New("produk tidak ditemukan")
-	ErrProductInUse    = errors.New("produk masih dipakai oleh order, tidak bisa dihapus")
+	ErrProductInUse = errors.New("produk masih dipakai oleh order atau slot flash sale, tidak bisa dihapus")
 )
 
 // ProductRepository mengakses tabel products di PostgreSQL.

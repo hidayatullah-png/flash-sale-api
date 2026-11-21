@@ -69,8 +69,9 @@ func main() {
 
 	// A. Suntikkan database ke dalam Repository
 	orderRepo := repository.NewOrderRepository(dbPool)
-	productRepo := repository.NewProductRepository(dbPool) // [Cia]
-	reviewRepo := repository.NewReviewRepository(mongoDB)  // [Cia]
+	productRepo := repository.NewProductRepository(dbPool)    // [Cia]
+	reviewRepo := repository.NewReviewRepository(mongoDB)     // [Cia]
+	slotRepo := repository.NewFlashSaleSlotRepository(dbPool) // [Cia]
 
 	// [Cia] Buat index MongoDB untuk koleksi reviews
 	idxCtx, idxCancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -83,14 +84,16 @@ func main() {
 	orderService := service.NewOrderService(orderRepo)
 	productService := service.NewProductService(productRepo)           // [Cia]
 	reviewService := service.NewReviewService(reviewRepo, productRepo) // [Cia]
+	slotService := service.NewFlashSaleSlotService(slotRepo)           // [Cia]
 
 	// C. Daftarkan Service ke dalam Router Fiber
 	route.SetupRoutes(app, orderService)
 
-	// [Cia] Route Product & Review
+	// [Cia] Route Product, Review & Flash Sale Slot
 	api := app.Group("/api")
 	route.RegisterProductRoutes(api, productService)
 	route.RegisterReviewRoutes(api, reviewService)
+	route.RegisterFlashSaleSlotRoutes(api, slotService)
 
 	// ==========================================
 
