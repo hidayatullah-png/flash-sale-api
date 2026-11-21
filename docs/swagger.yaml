@@ -1,5 +1,75 @@
-basePath: /api
+basePath: /api/v1
 definitions:
+  flash-sale-api_app_model.CreateFlashSaleSlotRequest:
+    properties:
+      end_time:
+        example: "2026-11-25T21:00:00+07:00"
+        type: string
+      flash_price:
+        example: 299000
+        type: number
+      product_id:
+        example: 4
+        type: integer
+      quota:
+        example: 50
+        type: integer
+      start_time:
+        example: "2026-11-25T19:00:00+07:00"
+        type: string
+    type: object
+  flash-sale-api_app_model.FlashSaleSlot:
+    properties:
+      created_at:
+        type: string
+      end_time:
+        example: "2026-11-25T21:00:00+07:00"
+        type: string
+      flash_price:
+        example: 299000
+        type: number
+      id:
+        example: 1
+        type: integer
+      normal_price:
+        example: 599000
+        type: number
+      product_id:
+        example: 4
+        type: integer
+      product_name:
+        example: Sepatu Lari Limited
+        type: string
+      quota:
+        example: 50
+        type: integer
+      start_time:
+        example: "2026-11-25T19:00:00+07:00"
+        type: string
+      status:
+        enum:
+        - upcoming
+        - active
+        - ended
+        - sold_out
+        example: upcoming
+        type: string
+    type: object
+  flash-sale-api_app_model.UpdateFlashSaleSlotRequest:
+    properties:
+      end_time:
+        example: "2026-11-25T21:00:00+07:00"
+        type: string
+      flash_price:
+        example: 299000
+        type: number
+      quota:
+        example: 50
+        type: integer
+      start_time:
+        example: "2026-11-25T19:00:00+07:00"
+        type: string
+    type: object
   model.ErrorResponse:
     properties:
       error:
@@ -103,6 +173,177 @@ info:
   title: Flash Sale API
   version: "1.0"
 paths:
+  /flash-sales:
+    get:
+      description: Mengambil daftar slot flash sale beserta status (upcoming, active,
+        ended, sold_out). Gunakan active=true untuk hanya slot yang sedang berlangsung
+        dan masih punya kuota.
+      parameters:
+      - description: true = hanya slot yang sedang aktif
+        in: query
+        name: active
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/flash-sale-api_app_model.FlashSaleSlot'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      summary: Daftar slot flash sale
+      tags:
+      - Flash Sale
+    post:
+      consumes:
+      - application/json
+      description: Membuat jadwal flash sale untuk satu produk (harga flash, kuota,
+        waktu mulai dan selesai). Produk harus ada di PostgreSQL. Format waktu RFC3339.
+        Perlu token JWT.
+      parameters:
+      - description: Data slot flash sale
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/flash-sale-api_app_model.CreateFlashSaleSlotRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/flash-sale-api_app_model.FlashSaleSlot'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Buat slot flash sale
+      tags:
+      - Flash Sale
+  /flash-sales/{id}:
+    delete:
+      description: Menghapus slot. Ditolak (409) jika slot sudah memiliki pesanan.
+      parameters:
+      - description: ID slot
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Hapus slot flash sale
+      tags:
+      - Flash Sale
+    get:
+      description: Mengambil satu slot flash sale beserta nama dan harga normal produknya.
+      parameters:
+      - description: ID slot
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/flash-sale-api_app_model.FlashSaleSlot'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      summary: Detail slot flash sale
+      tags:
+      - Flash Sale
+    put:
+      consumes:
+      - application/json
+      description: Mengubah harga flash, kuota, dan jadwal slot. Produk pada slot
+        tidak bisa diganti.
+      parameters:
+      - description: ID slot
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Data slot baru
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/flash-sale-api_app_model.UpdateFlashSaleSlotRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/flash-sale-api_app_model.FlashSaleSlot'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/model.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Edit slot flash sale
+      tags:
+      - Flash Sale
   /products:
     get:
       description: Mengambil daftar produk dengan paginasi.
@@ -400,4 +641,10 @@ paths:
       summary: Hapus ulasan
       tags:
       - Reviews
+securityDefinitions:
+  BearerAuth:
+    description: 'Isi dengan: Bearer <token JWT dari login>'
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"
