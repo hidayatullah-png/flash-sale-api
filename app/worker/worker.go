@@ -70,11 +70,11 @@ func HandleOrderCancelTask(
 
 	// 2. Cek status order (hanya cancel jika masih 'pending')
 	var status string
-	var productID, quantity int
+	var flashSaleSlotID, quantity int
 	err = tx.QueryRow(ctx,
-		"SELECT status, product_id, quantity FROM orders WHERE id = $1 FOR UPDATE",
+		"SELECT status, flash_sale_slot_id, quantity FROM orders WHERE id = $1 FOR UPDATE",
 		payload.OrderID,
-	).Scan(&status, &productID, &quantity)
+	).Scan(&status, &flashSaleSlotID, &quantity)
 	if err != nil {
 		return fmt.Errorf("order %d tidak ditemukan: %w", payload.OrderID, err)
 	}
@@ -94,13 +94,13 @@ func HandleOrderCancelTask(
 		return fmt.Errorf("gagal mengubah status order: %w", err)
 	}
 
-	// 4. Kembalikan stok produk
+	// 4. Kembalikan quota ke flash_sale_slots
 	_, err = tx.Exec(ctx,
-		"UPDATE products SET stock = stock + $1 WHERE id = $2",
-		quantity, productID,
+		"UPDATE flash_sale_slots SET quota = quota + $1 WHERE id = $2",
+		quantity, flashSaleSlotID,
 	)
 	if err != nil {
-		return fmt.Errorf("gagal mengembalikan stok: %w", err)
+		return fmt.Errorf("gagal mengembalikan quota flash sale slot: %w", err)
 	}
 
 	// 5. Commit transaksi
@@ -108,8 +108,8 @@ func HandleOrderCancelTask(
 		return fmt.Errorf("gagal commit transaksi cancel: %w", err)
 	}
 
-	log.Printf("[Worker] Order %d berhasil di-cancel. Stok produk %d dikembalikan +%d",
-		payload.OrderID, productID, quantity)
+	log.Printf("[Worker] Order %d berhasil di-cancel. Quota slot %d dikembalikan +%d",
+		payload.OrderID, flashSaleSlotID, quantity)
 
 	return nil
 }

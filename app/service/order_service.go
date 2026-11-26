@@ -26,8 +26,8 @@ func NewOrderService(repo *repository.OrderRepository, asynqClient *asynq.Client
 
 // Struct untuk menangkap data JSON dari user
 type CheckoutRequest struct {
-	ProductID int `json:"product_id"`
-	Quantity  int `json:"quantity"`
+	SlotID   int `json:"slot_id"`   // ID dari flash_sale_slots
+	Quantity int `json:"quantity"`
 	// Catatan: UserID sementara kita minta dari body untuk tes.
 	// Nanti setelah Faza selesai dengan fitur Auth, UserID ini akan
 	// diambil secara gaib dari JWT Token (c.Locals).
@@ -55,7 +55,7 @@ func (s *OrderService) Checkout(c *fiber.Ctx) error {
 	}
 
 	// 2. Lempar ke Repository untuk eksekusi Row-Level Locking
-	orderID, err := s.repo.CheckoutFlashSale(c.Context(), req.UserID, req.ProductID, req.Quantity)
+	orderID, err := s.repo.CheckoutFlashSale(c.Context(), req.UserID, req.SlotID, req.Quantity)
 	if err != nil {
 		// Jika error karena stok habis atau barang tidak ada
 		return c.Status(fiber.StatusConflict).JSON(fiber.Map{
